@@ -4,6 +4,7 @@ from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
+from xml.etree import ElementTree
 
 ROOT=Path(__file__).resolve().parents[1]
 class Page(HTMLParser):
@@ -56,6 +57,20 @@ def main():
         issues.append("Expected skip-link focus, visible focus and reduced-motion styles")
     if (ROOT/"CNAME").read_text(encoding="utf-8").strip()!="rootworks.technerd.tech":
         issues.append("Custom-domain CNAME mismatch")
+    document=(ROOT/"index.html").read_text(encoding="utf-8")
+    canonical='https://rootworks.technerd.tech/'
+    if f'<link rel="canonical" href="{canonical}">' not in document:
+        issues.append("Canonical homepage link missing or inconsistent")
+    robots=(ROOT/"robots.txt").read_text(encoding="utf-8")
+    if "Sitemap: https://rootworks.technerd.tech/sitemap.xml" not in robots:
+        issues.append("robots.txt is missing the sitemap link")
+    try:
+        root=ElementTree.parse(ROOT/"sitemap.xml").getroot()
+        locs=[e.text for e in root.findall("{http://www.sitemaps.org/schemas/sitemap/0.9}url/{http://www.sitemaps.org/schemas/sitemap/0.9}loc")]
+        if locs != [canonical]:
+            issues.append(f"Unexpected sitemap URLs: {locs}")
+    except (OSError, ElementTree.ParseError) as error:
+        issues.append(f"Invalid sitemap.xml: {error}")
     if issues:
         print("Rootworks structural validation FAILED:")
         for error in issues: print(" -",error)
