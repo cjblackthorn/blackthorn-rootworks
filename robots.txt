@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://rootworks.technerd.tech/sitemap.xml
